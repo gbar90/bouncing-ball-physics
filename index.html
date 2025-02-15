@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Ball Simulator</title>
+    <script>
+        console.log('Page starting to load');
+        window.onerror = function(msg, url, line) {
+            console.error('Error:', msg);
+            console.error('URL:', url);
+            console.error('Line:', line);
+            return false;
+        };
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+        .canvas-container {
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        #tachometerCanvas {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #simulationCanvas {
+            display: block;
+            margin: 0 auto;
+        }
+        .controls {
+            width: 300px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .shape-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .shape-button {
+            flex: 1;
+            padding: 8px;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .shape-button.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #2171cd;
+        }
+        .shape-button:hover {
+            background: #e0e0e0;
+        }
+        .shape-button.active:hover {
+            background: #357abd;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="range"] {
+            flex-grow: 1;
+        }
+        .value-display {
+            min-width: 60px;
+            padding: 4px 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .restart-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .restart-button:hover {
+            background: #357abd;
+        }
+        .sound-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #666;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .sound-button.enabled {
+            background: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="simulationCanvas" width="500" height="500"></canvas>
+            <canvas id="tachometerCanvas" width="150" height="150"></canvas>
+        </div>
+        <div class="controls">
+            <h2>Container Shape</h2>
+            <div class="control-group">
+                <div class="shape-selector">
+                    <button class="shape-button active" data-shape="square">Square</button>
+                    <button class="shape-button" data-shape="triangle">Triangle</button>
+                    <button class="shape-button" data-shape="circle">Circle</button>
+                    <button class="shape-button" data-shape="hexagon">Hexagon</button>
+                </div>
+            </div>
+            <h2>Physics Controls</h2>
+            <div class="control-group">
+                <label for="initialVx">Initial X Velocity (px/s)</label>
+                <div class="slider-container">
+                    <input type="range" id="initialVx" min="-2000" max="2000" value="100" step="40" title="Use mouse wheel to adjust">
+                    <span class="value-display" id="initialVxValue">100</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="initialVy">Initial Y Velocity (px/s)</label>
+                <div class="slider-container">
+                    <input type="range" id="initialVy" min="-2000" max="2000" value="100" step="40" title="Use mouse wheel to adjust">
+                    <span class="value-display" id="initialVyValue">100</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="gravity">Gravity (px/s²)</label>
+                <div class="slider-container">
+                    <input type="range" id="gravity" min="0" max="2000" value="100" step="10" title="Use mouse wheel to adjust">
+                    <span class="value-display" id="gravityValue">100</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="mass">Ball Mass (kg)</label>
+                <div class="slider-container">
+                    <input type="range" id="mass" min="0.1" max="10" value="1" step="0.1">
+                    <span class="value-display" id="massValue">1.0</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="radius">Ball Radius (px)</label>
+                <div class="slider-container">
+                    <input type="range" id="radius" min="5" max="50" value="20" step="1" title="Use mouse wheel to adjust">
+                    <span class="value-display" id="radiusValue">20</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="spring">Spring Force (k)</label>
+                <div class="slider-container">
+                    <input type="range" id="spring" min="0" max="2" value="1" step="0.01" title="Use mouse wheel to adjust">
+                    <span class="value-display" id="springValue">1</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="drag">Air Resistance</label>
+                <div class="slider-container">
+                    <input type="range" id="drag" min="0" max="0.02" value="0.002" step="0.0001" title="Use mouse wheel to adjust">
+                    <span class="value-display" id="dragValue">0.002</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <button id="restartButton" class="restart-button">Restart Simulation</button>
+            </div>
+            <div class="control-group">
+                <button id="soundButton" class="sound-button">Enable Sound</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        console.log('Loading physics.js');
+    </script>
+    <script src="physics.js"></script>
+    <script>
+        console.log('physics.js loaded');
+    </script>
+</body>
+</html>
